@@ -1,3 +1,5 @@
 {
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "pnpm turbo build --filter=@politics/web",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
 }
