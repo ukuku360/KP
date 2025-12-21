@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ../.. && pnpm build --filter=@politics/web",
+  "installCommand": "pnpm install",
+  "framework": "nextjs"
+}
