@@ -1,5 +1,4 @@
 {
-  "name": "korean-politics-dashboard",
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install"
 }
