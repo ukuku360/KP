@@ -57,6 +57,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.1.0
         version: 1.2.4(@types/react@18.3.27)(react@18.3.1)
+      '@svg-maps/south-korea':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@tanstack/react-query':
         specifier: ^5.62.8
         version: 5.90.12(react@18.3.1)
@@ -637,6 +640,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@svg-maps/south-korea@2.0.0':
+    resolution: {integrity: sha512-Zs+hcVWn1V2s9ZUdgETOU81EmCyp6Nb9VULsbchvzdXjvvfta/C9cMlIQ58cd75gEWaKUutiyygUpQRESnt/RQ==}
 
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
@@ -2904,6 +2910,8 @@ snapshots:
   '@rushstack/eslint-patch@1.15.0': {}
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@svg-maps/south-korea@2.0.0': {}
 
   '@swc/counter@0.1.3': {}
 
