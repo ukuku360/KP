@@ -1,5 +1,7 @@
 import { prisma } from "@politics/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
 import { BillStatsChart } from "@/components/stats/bill-stats-chart";
 import { PetitionStatsChart } from "@/components/stats/petition-stats-chart";
 import { CategoryDistribution } from "@/components/stats/category-distribution";
