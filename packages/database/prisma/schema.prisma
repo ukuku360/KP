@@ -1,0 +1,249 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== NextAuth.js ==========
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ========== 사용자 ==========
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  trustScore    Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  billVotes     BillVote[]
+  billComments  BillComment[]
+  petitionVotes PetitionVote[]
+  petitionComments PetitionComment[]
+  posts         Post[]
+  comments      Comment[]
+}
+
+// ========== 입법예고 ==========
+model Bill {
+  id              String     @id @default(cuid())
+  billNumber      String     @unique
+  billName        String
+  proposerType    String
+  proposer        String?
+  committee       String
+  proposalReason  String     @db.Text
+  mainContent     String     @db.Text
+  noticeStart     DateTime
+  noticeEnd       DateTime
+  opinionCount    Int        @default(0)
+  status          BillStatus @default(IN_PROGRESS)
+  sourceUrl       String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  files    BillFile[]
+  votes    BillVote[]
+  comments BillComment[]
+
+  @@index([status])
+  @@index([committee])
+  @@index([noticeEnd])
+}
+
+enum BillStatus {
+  IN_PROGRESS
+  ENDED
+}
+
+model BillFile {
+  id        String   @id @default(cuid())
+  billId    String
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  fileType  String
+  fileUrl   String
+  fileName  String
+  createdAt DateTime @default(now())
+}
+
+model BillVote {
+  id        String   @id @default(cuid())
+  billId    String
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stance    Int      // 1: 강력반대, 2: 반대, 3: 중립, 4: 찬성, 5: 강력찬성
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([billId, userId])
+}
+
+model BillComment {
+  id        String   @id @default(cuid())
+  billId    String
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== 국민동의청원 ==========
+model Petition {
+  id            String         @id @default(cuid())
+  petitionId    String         @unique
+  category      String
+  title         String
+  content       String         @db.Text
+  hashtags      String[]
+  agreeCount    Int            @default(0)
+  agreeGoal     Int            @default(50000)
+  progressRate  Float          @default(0)
+  startDate     DateTime
+  endDate       DateTime
+  status        PetitionStatus @default(IN_PROGRESS)
+  sourceUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  votes    PetitionVote[]
+  comments PetitionComment[]
+  history  PetitionHistory[]
+
+  @@index([status])
+  @@index([category])
+  @@index([endDate])
+}
+
+enum PetitionStatus {
+  IN_PROGRESS
+  PENDING_AGREE
+  ENDED
+  COMMITTEE
+}
+
+model PetitionVote {
+  id         String   @id @default(cuid())
+  petitionId String
+  petition   Petition @relation(fields: [petitionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stance     String   // agree, disagree
+  createdAt  DateTime @default(now())
+
+  @@unique([petitionId, userId])
+}
+
+model PetitionComment {
+  id         String   @id @default(cuid())
+  petitionId String
+  petition   Petition @relation(fields: [petitionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PetitionHistory {
+  id         String   @id @default(cuid())
+  petitionId String
+  petition   Petition @relation(fields: [petitionId], references: [id], onDelete: Cascade)
+  agreeCount Int
+  recordedAt DateTime @default(now())
+
+  @@index([petitionId, recordedAt])
+}
+
+// ========== 커뮤니티 ==========
+model Post {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  title     String
+  content   String   @db.Text
+  viewCount Int      @default(0)
+  likeCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   Comment[] @relation("CommentReplies")
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+}
+
+// ========== 정치인 ==========
+model Politician {
+  id           String   @id @default(cuid())
+  name         String
+  party        String
+  district     String?
+  profileImage String?
+  bio          String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([party])
+  @@index([name])
+}
