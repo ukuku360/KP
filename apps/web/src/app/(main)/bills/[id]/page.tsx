@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@politics/database";
+import { prisma, type BillVote } from "@politics/database";
 import { BillDetail } from "@/components/bills/bill-detail";
 import { BillVoting } from "@/components/bills/bill-voting";
 import { BillComments } from "@/components/bills/bill-comments";
@@ -42,7 +42,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   const voteStats = {
     total: bill.votes.length,
     distribution: [1, 2, 3, 4, 5].map(
-      (stance) => bill.votes.filter((v) => v.stance === stance).length
+      (stance) => bill.votes.filter((v: BillVote) => v.stance === stance).length
     ),
   };
 

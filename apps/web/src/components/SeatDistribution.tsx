@@ -229,8 +229,8 @@ export function SeatDistributionChart() {
     const total = SAMPLE_DATA.reduce((acc, curr) => acc + curr.count, 0);
 
     return (
-        <div className="w-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8">
-            <div className="relative w-full mx-auto" style={{ height: dimensions.height }} ref={containerRef}>
+        <div className="w-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-4 sm:p-6 md:p-8">
+            <div className="relative w-full mx-auto" style={{ height: dimensions.height || 'auto', minHeight: 200 }} ref={containerRef}>
                 {dimensions.width > 0 && (
                     <svg width={dimensions.width} height={dimensions.height} className="overflow-visible">
                          <defs>
@@ -244,11 +244,10 @@ export function SeatDistributionChart() {
                                 key={i}
                                 cx={dot.x}
                                 cy={dot.y}
-                                r={dimensions.width / 130}
+                                r={Math.max(dimensions.width / 150, 3)}
                                 fill={hoveredParty && hoveredParty !== dot.partyId ? "#e5e7eb" : dot.color}
-                                className="transition-all duration-300 ease-out cursor-pointer hover:r-[6px] animate-in zoom-in fade-in duration-500 fill-mode-both"
+                                className="transition-all duration-300 ease-out cursor-pointer"
                                 style={{
-                                    animationDelay: `${i * 2}ms`,
                                     transformOrigin: 'center',
                                     filter: hoveredParty === dot.partyId ? 'url(#glow)' : undefined
                                 }}
@@ -258,28 +257,28 @@ export function SeatDistributionChart() {
                          ))}
                     </svg>
                 )}
-                {/* Center Info Panel - Cleaner with AnimatePresence-like feel */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-                     <div className={cn(
-                         "transition-all duration-300 transform",
-                         hoveredParty ? "scale-100 opacity-100" : "scale-100 opacity-100"
-                     )}>
+                {/* Center Info Panel */}
+                <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+                     <div className="transition-all duration-300 transform">
                          {hoveredParty ? (
-                             <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-200">
-                                 <div className="text-2xl font-bold tracking-tight mb-1" style={{ color: SAMPLE_DATA.find(p => p.id === hoveredParty)?.color }}>
+                             <div className="flex flex-col items-center">
+                                 <div className="text-base sm:text-xl md:text-2xl font-bold tracking-tight mb-0.5 sm:mb-1" style={{ color: SAMPLE_DATA.find(p => p.id === hoveredParty)?.color }}>
                                      {SAMPLE_DATA.find(p => p.id === hoveredParty)?.name}
                                  </div>
-                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-black text-foreground">
+                                 <div className="flex items-baseline gap-0.5 sm:gap-1">
+                                    <span className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground">
                                         {SAMPLE_DATA.find(p => p.id === hoveredParty)?.count}
                                     </span>
-                                    <span className="text-muted-foreground font-medium">석</span>
+                                    <span className="text-xs sm:text-sm text-muted-foreground font-medium">석</span>
                                  </div>
+                                 <span className="text-xs sm:text-sm text-muted-foreground font-medium">
+                                    {Math.round(((SAMPLE_DATA.find(p => p.id === hoveredParty)?.count || 0) / total) * 100)}%
+                                 </span>
                              </div>
                          ) : (
                              <div className="flex flex-col items-center">
-                                 <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-1">Total Seats</span>
-                                 <div className="text-5xl font-black text-foreground tracking-tight">
+                                 <span className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-0.5 sm:mb-1">Total Seats</span>
+                                 <div className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">
                                      {total}
                                  </div>
                              </div>
@@ -288,54 +287,49 @@ export function SeatDistributionChart() {
                 </div>
             </div>
 
-            {/* Legend - Minimalist Cards */}
-            {/* Legend - Single Line Stacked Bar Graph */}
-            <div className="mt-12 w-full max-w-4xl mx-auto">
-                <div className="flex w-full h-14 md:h-16 rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5 isolate">
+            {/* Legend - Stacked Bar Graph */}
+            <div className="mt-6 sm:mt-8 md:mt-12 w-full max-w-4xl mx-auto">
+                <div className="flex w-full h-10 sm:h-12 md:h-14 lg:h-16 rounded-xl sm:rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5 isolate">
                     {SAMPLE_DATA.map((party) => {
                         const percentage = (party.count / total) * 100;
                         const isHovered = hoveredParty === party.id;
                         const isMuted = hoveredParty && !isHovered;
-                        const showLabel = percentage > 8; // Only show text if wide enough
+                        const showLabel = percentage > 15;
 
                         return (
-                            <div 
+                            <div
                                 key={party.id}
                                 className={cn(
                                     "relative h-full transition-all duration-300 ease-out cursor-pointer flex items-center justify-center group overflow-hidden",
-                                    isMuted ? "opacity-30 saturation-50" : "opacity-100 z-10"
+                                    isMuted ? "opacity-30" : "opacity-100 z-10"
                                 )}
-                                style={{ 
-                                    width: `${percentage}%`, 
+                                style={{
+                                    width: `${percentage}%`,
                                     backgroundColor: party.color,
-                                    // Enhance hover effect - actually expanding width is jarring in stacked, 
-                                    // but we can scale content or something. 
-                                    // Let's stick to opacity/z-index focus.
                                 }}
                                 onMouseEnter={() => setHoveredParty(party.id)}
                                 onMouseLeave={() => setHoveredParty(null)}
                             >
-                                {/* Shimmer Overlay */}
                                 <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-200" />
-                                
-                                {/* Label Content - Only if space permits or hovered */}
+
                                 {(showLabel || isHovered) && (
                                     <div className={cn(
-                                        "flex flex-col items-center justify-center text-white drop-shadow-md whitespace-nowrap animate-in fade-in zoom-in duration-300",
-                                        // Adjust text color for bright backgrounds (like Justice Party Yellow)
+                                        "flex flex-col items-center justify-center text-white drop-shadow-md whitespace-nowrap",
                                         party.color === "#FFED00" ? "text-black drop-shadow-none font-bold" : ""
                                     )}>
-                                        <span className="font-bold text-sm md:text-base tracking-tight px-1">{party.name}</span>
-                                        <span className="text-xs md:text-sm font-medium opacity-90">{Math.round(percentage)}%</span>
+                                        <span className="font-bold text-[10px] sm:text-xs md:text-sm tracking-tight px-0.5 sm:px-1">{party.name}</span>
+                                        <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[10px] md:text-xs font-medium opacity-90">
+                                            <span className={cn(isHovered ? "inline" : "hidden sm:inline")}>{party.count}석</span>
+                                            <span>{Math.round(percentage)}%</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-                
-                {/* Optional: Minimal ticks or description below if needed, but user asked for "exactly one line" style mostly */}
-                <div className="flex justify-between text-xs text-muted-foreground mt-2 px-1">
+
+                <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground mt-1.5 sm:mt-2 px-1">
                     <span>전체 {total}석</span>
                     <span>과반 {Math.floor(total/2) + 1}석</span>
                 </div>
