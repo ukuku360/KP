@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut, User, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserBadges } from "@/components/badge/user-badge";
 
 const navigation = [
   { name: "홈", href: "/" },
@@ -14,11 +16,25 @@ const navigation = [
   { name: "정치관련통계", href: "/stats" },
   { name: "커뮤니티", href: "/community" },
   { name: "정치인", href: "/politicians" },
+  { name: "뱃지", href: "/badge" },
 ];
+
+async function fetchUserBadges() {
+  const res = await fetch("/api/user/badges");
+  if (!res.ok) return [];
+  return res.json();
+}
 
 export function Header() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+
+  const { data: badges = [] } = useQuery({
+    queryKey: ["user-badges"],
+    queryFn: fetchUserBadges,
+    enabled: !!session,
+    staleTime: 1000 * 60 * 5, // 5분간 캐시
+  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -28,7 +44,7 @@ export function Header() {
             POLITICS.KR
           </span>
         </Link>
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navigation.map((item) => (
             <Link
               key={item.href}
@@ -37,9 +53,11 @@ export function Header() {
                 "transition-colors hover:text-foreground/80 px-1 py-2",
                 pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href))
                   ? "text-foreground font-semibold"
-                  : "text-foreground/60 font-medium"
+                  : "text-foreground/60 font-medium",
+                item.href === "/badge" && "flex items-center gap-1"
               )}
             >
+              {item.href === "/badge" && <Crown className="h-4 w-4" />}
               {item.name}
             </Link>
           ))}
@@ -52,7 +70,7 @@ export function Header() {
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
           ) : session ? (
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+              <Link href="/badge" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 {session.user?.image ? (
                   <img
                     src={session.user.image}
@@ -63,7 +81,10 @@ export function Header() {
                   <User className="h-8 w-8 rounded-full bg-muted p-1.5" />
                 )}
                 <span className="text-sm font-medium">{session.user?.name}</span>
-              </div>
+                {badges.length > 0 && (
+                  <UserBadges badges={badges} size="sm" maxDisplay={2} />
+                )}
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"

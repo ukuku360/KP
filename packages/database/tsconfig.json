@@ -9,6 +9,6 @@
     "declarationMap": true,
     "esModuleInterop": true
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "generated/**/*.ts"],
   "exclude": ["node_modules"]
 }

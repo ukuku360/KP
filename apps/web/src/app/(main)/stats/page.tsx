@@ -5,80 +5,10 @@ export const dynamic = "force-dynamic";
 import { BillStatsChart } from "@/components/stats/bill-stats-chart";
 import { PetitionStatsChart } from "@/components/stats/petition-stats-chart";
 import { CategoryDistribution } from "@/components/stats/category-distribution";
-import { FileText, ScrollText, Users, TrendingUp } from "lucide-react";
+import { FileText, ScrollText, Users, TrendingUp, type LucideIcon } from "lucide-react";
 
 async function getStats() {
-  const dbUrl = process.env.DATABASE_URL;
-  let dbUrlParsed:
-    | {
-        protocol: string | null;
-        host: string | null;
-        port: string | null;
-        database: string | null;
-        username: string | null;
-      }
-    | undefined;
-
-  if (dbUrl) {
-    try {
-      const parsed = new URL(dbUrl);
-      dbUrlParsed = {
-        protocol: parsed.protocol || null,
-        host: parsed.hostname || null,
-        port: parsed.port || null,
-        database: parsed.pathname.replace("/", "") || null,
-        username: parsed.username || null,
-      };
-    } catch {
-      dbUrlParsed = undefined;
-    }
-  }
-
-  // #region agent log
-  fetch(
-    "http://127.0.0.1:7242/ingest/e3fdac28-fe0c-4857-91c4-c90c4e686a3a",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "debug-session",
-        runId: "pre-fix",
-        hypothesisId: "H1",
-        location: "apps/web/src/app/(main)/stats/page.tsx:getStats",
-        message: "getStats entry",
-        data: {
-          envHasDbUrl: Boolean(process.env.DATABASE_URL),
-          nodeEnv: process.env.NODE_ENV,
-          runtime: process.env.NEXT_RUNTIME ?? "node",
-          dbUrl: dbUrlParsed,
-        },
-        timestamp: Date.now(),
-      }),
-    }
-  ).catch(() => {});
-  // #endregion
-
-  try {
-    // #region agent log
-    fetch(
-      "http://127.0.0.1:7242/ingest/e3fdac28-fe0c-4857-91c4-c90c4e686a3a",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "debug-session",
-          runId: "pre-fix",
-          hypothesisId: "H2",
-          location: "apps/web/src/app/(main)/stats/page.tsx:getStats",
-          message: "executing Prisma counts",
-          data: { attemptingQueries: true },
-          timestamp: Date.now(),
-        }),
-      }
-    ).catch(() => {});
-    // #endregion
-
-    const [
+  const [
       billCount,
       petitionCount,
       userCount,
@@ -98,31 +28,6 @@ async function getStats() {
       }),
     ]);
 
-    // #region agent log
-    fetch(
-      "http://127.0.0.1:7242/ingest/e3fdac28-fe0c-4857-91c4-c90c4e686a3a",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "debug-session",
-          runId: "pre-fix",
-          hypothesisId: "H3",
-          location: "apps/web/src/app/(main)/stats/page.tsx:getStats",
-          message: "Prisma counts success",
-          data: {
-            billCount,
-            petitionCount,
-            userCount,
-            committees: billsByCommittee.length,
-            categories: petitionsByCategory.length,
-          },
-          timestamp: Date.now(),
-        }),
-      }
-    ).catch(() => {});
-    // #endregion
-
     return {
       billCount,
       petitionCount,
@@ -136,35 +41,6 @@ async function getStats() {
         count: item._count.id,
       })),
     };
-  } catch (error) {
-    // #region agent log
-    fetch(
-      "http://127.0.0.1:7242/ingest/e3fdac28-fe0c-4857-91c4-c90c4e686a3a",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "debug-session",
-          runId: "pre-fix",
-          hypothesisId: "H2",
-          location: "apps/web/src/app/(main)/stats/page.tsx:getStats",
-          message: "Prisma counts failed",
-          data: {
-            errorName: (error as any)?.name,
-            errorCode: (error as any)?.code ?? (error as any)?.errorCode,
-            clientVersion: (error as any)?.clientVersion,
-            errorMessage: (error as Error)?.message,
-            meta: (error as any)?.meta,
-            raw: String(error),
-          },
-          timestamp: Date.now(),
-        }),
-      }
-    ).catch(() => {});
-    // #endregion
-
-    throw error;
-  }
 }
 
 export default async function StatsPage() {
@@ -248,7 +124,7 @@ function StatCard({
 }: {
   title: string;
   value: number | string;
-  icon: any;
+  icon: LucideIcon;
   description: string;
 }) {
   return (

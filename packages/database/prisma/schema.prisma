@@ -1,5 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
+  output        = "../generated/client"
   binaryTargets = ["native", "darwin-arm64", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
@@ -55,14 +56,15 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  billVotes     BillVote[]
-  billComments  BillComment[]
-  petitionVotes PetitionVote[]
+  accounts         Account[]
+  sessions         Session[]
+  billVotes        BillVote[]
+  billComments     BillComment[]
+  petitionVotes    PetitionVote[]
   petitionComments PetitionComment[]
-  posts         Post[]
-  comments      Comment[]
+  posts            Post[]
+  comments         Comment[]
+  supporterBadges  SupporterBadge[]
 }
 
 // ========== 입법예고 ==========
@@ -235,15 +237,40 @@ model Comment {
 
 // ========== 정치인 ==========
 model Politician {
-  id           String   @id @default(cuid())
-  name         String
-  party        String
-  district     String?
-  profileImage String?
-  bio          String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  party           String
+  district        String?
+  profileImage    String?
+  bio             String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supporterBadges SupporterBadge[]
 
   @@index([party])
   @@index([name])
+}
+
+// ========== 서포터 뱃지 ==========
+enum BadgeType {
+  SUPPORTER       // 일반 서포터 뱃지
+  POLITICIAN_FAN  // 특정 정치인 팬 뱃지
+}
+
+model SupporterBadge {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  politicianId    String?
+  politician      Politician? @relation(fields: [politicianId], references: [id], onDelete: SetNull)
+  badgeType       BadgeType
+  stripeSessionId String?     @unique
+  stripeSubId     String?     // 구독 ID (향후 자동갱신용)
+  amount          Int         // 결제 금액 (원)
+  expiresAt       DateTime
+  createdAt       DateTime    @default(now())
+
+  @@index([userId, expiresAt])
+  @@index([stripeSessionId])
 }

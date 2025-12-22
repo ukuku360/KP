@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@politics/database";
+import { prisma, Prisma, BillStatus } from "@politics/database";
+import { PAGINATION, DEFAULT_BILL_STATUS } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const committee = searchParams.get("committee");
     const q = searchParams.get("q");
-    const status = searchParams.get("status") || "IN_PROGRESS";
+    const statusParam = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const limit = parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT));
 
-    const where: any = {};
+    const where: Prisma.BillWhereInput = {};
 
-    if (status) {
-      where.status = status;
+    // status 파라미터가 유효한 BillStatus인 경우에만 사용
+    if (statusParam && Object.values(BillStatus).includes(statusParam as BillStatus)) {
+      where.status = statusParam as BillStatus;
+    } else {
+      where.status = DEFAULT_BILL_STATUS;
     }
 
     if (committee && committee !== "전체") {

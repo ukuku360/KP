@@ -29,20 +29,10 @@ export async function crawlPetitions(): Promise<void> {
 
     const page = await context.newPage();
 
-    // 국민동의청원 목록 페이지 접근 (최다 동의 순 등)
-    await page.goto("https://petitions.assembly.go.kr/api/v1/petitions?pageIndex=1&recordCountPerPage=10&sort=AGRE_CO-D", {
-        // API 직접 호출은 어려우니 웹페이지 방문
-        // 실제로는 https://petitions.assembly.go.kr/ -> 청원 목록 클릭
-    });
-    // 그냥 페이지로 가서 돔 스크래핑
-    await page.goto("https://petitions.assembly.go.kr/refer/processed/agree", { // 성립된 청원 or 진행중(ongoing)
+    // 진행중인 청원 목록 페이지
+    await page.goto("https://petitions.assembly.go.kr/proceed/onGoingAll", {
       waitUntil: "networkidle",
       timeout: 60000,
-    });
-    // 진행중인 청원 (ongoing)
-    await page.goto("https://petitions.assembly.go.kr/proceed/onGoingAll", {
-        waitUntil: "networkidle",
-        timeout: 60000
     });
 
     await page.waitForTimeout(3000);

@@ -4,28 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter } from "lucide-react";
-
-const CATEGORIES = [
-  "전체",
-  "정치/선거",
-  "수사/법무",
-  "재정/세제",
-  "외교/통일",
-  "국방",
-  "경제/산업",
-  "교육",
-  "환경/기후",
-  "노동",
-  "교통/통신",
-  "복지/보건",
-  "문화/체육",
-  "안전/재해",
-  "농어업",
-  "국토/해양",
-  "인권/여성",
-  "행정",
-  "기타",
-];
+import { PETITION_CATEGORIES } from "@/lib/constants";
 
 export function PetitionFilters() {
   const router = useRouter();
@@ -73,7 +52,7 @@ export function PetitionFilters() {
 
       <div className="flex flex-wrap gap-2">
         <Filter className="h-5 w-5 text-muted-foreground" />
-        {CATEGORIES.map((category) => (
+        {PETITION_CATEGORIES.map((category) => (
           <Button
             key={category}
             variant={currentCategory === category ? "default" : "outline"}

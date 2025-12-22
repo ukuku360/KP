@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { TOTAL_SEATS } from "@/lib/constants";
 
 interface Party {
   id: string;
@@ -26,16 +27,6 @@ const SAMPLE_DATA: Party[] = [
     return 0; 
 });
 
-// Calculate dot positions
-// Standard Hemicycle: Rows of dots.
-// We need ~300 dots.
-// A simple algorithm is to have concentric semi-circles.
-// We can pre-calculate capacity per row roughly.
-// Row 1 (inner): ~10
-// ...
-// Row N (outer): ~...
-
-const TOTAL_SEATS = 300;
 
 interface Dot {
     x: number;

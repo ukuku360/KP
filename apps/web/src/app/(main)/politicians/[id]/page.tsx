@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MessageSquare, ThumbsUp, PenSquare, ArrowRight } from "lucide-react";
+import { ExternalLink, MessageSquare, ThumbsUp, PenSquare, ArrowRight, Heart, Crown } from "lucide-react";
+import { DonationButton } from "@/components/politician/donation-button";
 
 export default function PoliticianDetailPage({ params }: { params: { id: string } }) {
   const politician = MOCK_POLITICIANS.find((p) => p.id === params.id);
@@ -46,7 +47,18 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
           <p className="text-lg text-muted-foreground">{politician.district}</p>
           <p className="max-w-3xl">{politician.bio}</p>
         </div>
-        <div className="flex flex-col gap-2 min-w-[140px]">
+        <div className="flex flex-col gap-2 min-w-[160px]">
+             <DonationButton
+               politicianId={politician.id}
+               politicianName={politician.name}
+               politicianParty={politician.party}
+               size="sm"
+             />
+             <Link href={`/badge?politician=${politician.id}`}>
+               <Button variant="outline" size="sm" className="w-full gap-2">
+                 <Crown className="h-4 w-4" /> 팬 뱃지 구매
+               </Button>
+             </Link>
              {politician.contact.website && (
                <Button variant="outline" size="sm" asChild>
                  <a href={politician.contact.website} target="_blank" rel="noreferrer" className="gap-2">

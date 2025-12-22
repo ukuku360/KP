@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@politics/database";
+import { prisma, Prisma } from "@politics/database";
 import { auth } from "@/lib/auth";
+import { PAGINATION } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || String(PAGINATION.POSTS_LIMIT));
 
-    const where: any = {};
+    const where: Prisma.PostWhereInput = {};
 
     if (category) {
       where.category = category;

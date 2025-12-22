@@ -86,10 +86,8 @@ async function extractBillsFromPage(page: Page): Promise<BillData[]> {
 
         if (!billNumber || !billName) continue;
 
-        // 링크 추출 (상세 페이지)
-        // const detailLink = await billNameEl?.getAttribute("href");
+        const noticeEnd = parseDate("2099-12-31");
 
-        const noticeEnd = parseDate("2099-12-31"); // 접수 단계라 종료일 없음
         const noticeStart = parseDate(dateText);
 
         bills.push({
