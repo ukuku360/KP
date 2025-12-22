@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@politics/database";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // @ts-expect-error - Prisma adapter type recursion issue
   adapter: PrismaAdapter(prisma),
   providers: [
     KakaoProvider({
