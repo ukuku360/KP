@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@politics/database";
 import { BadgePurchaseCard } from "@/components/badge/badge-purchase-card";
@@ -157,4 +156,6 @@ export default async function BadgePage() {
     </div>
   );
 }
+
+
 

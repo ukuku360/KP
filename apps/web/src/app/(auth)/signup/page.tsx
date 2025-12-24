@@ -7,21 +7,48 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("비밀번호가 일치하지 않습니다");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("비밀번호는 6자 이상이어야 합니다");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "회원가입에 실패했습니다");
+        return;
+      }
+
+      // 회원가입 성공 후 자동 로그인
       const result = await signIn("credentials", {
         email,
         password,
@@ -29,13 +56,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        router.push("/login");
       } else {
         router.push("/");
         router.refresh();
       }
     } catch {
-      setError("로그인에 실패했습니다");
+      setError("회원가입에 실패했습니다");
     } finally {
       setIsLoading(false);
     }
@@ -45,57 +72,74 @@ export default function LoginPage() {
     <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
       <CardHeader className="text-center pb-2">
         <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-          POLITICS.KR
+          회원가입
         </CardTitle>
         <CardDescription className="text-base">
-          로그인하여 입법 과정에 참여하세요
+          정치 커뮤니티에 참여하세요
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="이메일"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="이름 (선택)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <div className="space-y-2">
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="password"
-                placeholder="비밀번호"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="email"
+              placeholder="이메일"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10"
+              required
+            />
           </div>
-          
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="password"
+              placeholder="비밀번호 (6자 이상)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10"
+              required
+            />
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="password"
+              placeholder="비밀번호 확인"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pl-10"
+              required
+            />
+          </div>
+
           {error && (
             <p className="text-sm text-red-500 text-center">{error}</p>
           )}
-          
-          <Button 
-            type="submit" 
+
+          <Button
+            type="submit"
             className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
             disabled={isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                로그인 중...
+                가입 중...
               </>
             ) : (
-              "로그인"
+              "회원가입"
             )}
           </Button>
         </form>
@@ -121,9 +165,9 @@ export default function LoginPage() {
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          계정이 없으신가요?{" "}
-          <Link href="/signup" className="text-blue-600 hover:underline font-medium">
-            회원가입
+          이미 계정이 있으신가요?{" "}
+          <Link href="/login" className="text-blue-600 hover:underline font-medium">
+            로그인
           </Link>
         </p>
       </CardFooter>
@@ -143,3 +187,4 @@ function KakaoIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+

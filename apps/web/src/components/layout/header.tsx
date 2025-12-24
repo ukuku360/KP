@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User, Crown } from "lucide-react";
+import { LogIn, LogOut, User, Crown, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserBadges } from "@/components/badge/user-badge";
 
@@ -13,10 +13,11 @@ const navigation = [
   { name: "홈", href: "/" },
   { name: "입법예정법안", href: "/bills" },
   { name: "국민동의청원", href: "/petitions" },
+  { name: "실시간토론", href: "/live", icon: "live" },
   { name: "정치관련통계", href: "/stats" },
   { name: "커뮤니티", href: "/community" },
   { name: "정치인", href: "/politicians" },
-  { name: "뱃지", href: "/badge" },
+  { name: "뱃지", href: "/badge", icon: "badge" },
 ];
 
 async function fetchUserBadges() {
@@ -50,14 +51,14 @@ export function Header() {
               key={item.href}
               href={item.href}
               className={cn(
-                "transition-colors hover:text-foreground/80 px-1 py-2",
+                "transition-colors hover:text-foreground/80 px-1 py-2 flex items-center gap-1",
                 pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href))
                   ? "text-foreground font-semibold"
-                  : "text-foreground/60 font-medium",
-                item.href === "/badge" && "flex items-center gap-1"
+                  : "text-foreground/60 font-medium"
               )}
             >
-              {item.href === "/badge" && <Crown className="h-4 w-4" />}
+              {item.icon === "live" && <Radio className="h-4 w-4 text-red-500 animate-pulse" />}
+              {item.icon === "badge" && <Crown className="h-4 w-4" />}
               {item.name}
             </Link>
           ))}
@@ -96,15 +97,16 @@ export function Header() {
               </Button>
             </div>
           ) : (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => signIn("kakao")}
-              className="gap-2"
-            >
-              <LogIn className="h-4 w-4" />
-              카카오 로그인
-            </Button>
+            <Link href="/login">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                로그인
+              </Button>
+            </Link>
           )}
         </div>
       </div>

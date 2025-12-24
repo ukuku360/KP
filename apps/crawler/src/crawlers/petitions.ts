@@ -53,6 +53,7 @@ export async function crawlPetitions(): Promise<void> {
     throw error;
   } finally {
     await browser.close();
+    await prisma.$disconnect();
   }
 }
 

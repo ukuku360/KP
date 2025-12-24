@@ -98,7 +98,7 @@ export function UserBadges({
     <span className={cn("inline-flex items-center gap-1", className)}>
       {displayBadges.map((badge, index) => (
         <UserBadge
-          key={index}
+          key={`${badge.badgeType}-${badge.politician?.name || 'supporter'}-${index}`}
           type={badge.badgeType}
           politicianName={badge.politician?.name}
           size={size}
@@ -110,4 +110,6 @@ export function UserBadges({
     </span>
   );
 }
+
+
 

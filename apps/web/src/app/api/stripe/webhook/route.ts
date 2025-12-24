@@ -53,10 +53,28 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { userId, badgeType, politicianId } = session.metadata || {};
+  const metadata = session.metadata;
+
+  if (!metadata) {
+    console.error("Missing metadata in checkout session:", session.id);
+    return;
+  }
+
+  const userId = metadata.userId;
+  const badgeType = metadata.badgeType;
+  const politicianId = metadata.politicianId || null;
 
   if (!userId || !badgeType) {
-    console.error("Missing metadata in checkout session:", session.id);
+    console.error("Missing required metadata fields in checkout session:", session.id, {
+      hasUserId: !!userId,
+      hasBadgeType: !!badgeType,
+    });
+    return;
+  }
+
+  // BadgeType 유효성 검증
+  if (badgeType !== "SUPPORTER" && badgeType !== "POLITICIAN_FAN") {
+    console.error("Invalid badgeType in checkout session:", session.id, badgeType);
     return;
   }
 
@@ -93,4 +111,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     throw error;
   }
 }
+
+
 

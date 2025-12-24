@@ -35,10 +35,10 @@ export const stripe = {
 // Re-export from constants for server-side use
 export { BADGE_PRICES, BADGE_DURATION_DAYS } from "./constants";
 
-// Stripe Price ID (Stripe 대시보드에서 생성 후 설정)
-// 테스트 환경에서는 동적으로 가격을 설정하므로 이 ID는 사용하지 않을 수 있음
-export const STRIPE_PRICE_IDS = {
-  SUPPORTER: process.env.STRIPE_SUPPORTER_PRICE_ID || "",
-  POLITICIAN_FAN: process.env.STRIPE_POLITICIAN_FAN_PRICE_ID || "",
-} as const;
+// TODO: Production 환경에서 Stripe 대시보드의 Price ID 사용 시 활성화
+// 현재는 checkout/route.ts에서 price_data로 동적 가격 설정 중
+// export const STRIPE_PRICE_IDS = {
+//   SUPPORTER: process.env.STRIPE_SUPPORTER_PRICE_ID || "",
+//   POLITICIAN_FAN: process.env.STRIPE_POLITICIAN_FAN_PRICE_ID || "",
+// } as const;
 

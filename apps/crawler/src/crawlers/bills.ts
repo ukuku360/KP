@@ -15,6 +15,35 @@ interface BillData {
   sourceUrl: string;
 }
 
+// 크롤링 설정
+const MAX_PAGES = 10;
+const PAGE_DELAY_MS = 1000;
+
+/**
+ * 날짜 문자열을 안전하게 파싱
+ * 지원 형식: YYYY-MM-DD, YYYY.MM.DD, YYYYMMDD
+ */
+function parseDateSafe(dateStr: string | null | undefined, defaultDays: number = 0): Date {
+  if (!dateStr) {
+    const d = new Date();
+    d.setDate(d.getDate() + defaultDays);
+    return d;
+  }
+
+  // 다양한 형식을 YYYY-MM-DD로 정규화
+  const cleaned = dateStr.trim().replace(/[.\/]/g, "-");
+  const parsed = new Date(cleaned);
+
+  if (isNaN(parsed.getTime())) {
+    console.warn(`날짜 파싱 실패: "${dateStr}", 기본값 사용 (현재 + ${defaultDays}일)`);
+    const d = new Date();
+    d.setDate(d.getDate() + defaultDays);
+    return d;
+  }
+
+  return parsed;
+}
+
 export async function crawlBills(): Promise<void> {
   console.log("Starting bills crawler...");
 
@@ -30,108 +59,214 @@ export async function crawlBills(): Promise<void> {
 
     const page = await context.newPage();
 
-    // 계류의안(진행중) 페이지 접근 (최근 접수 의안 포함)
-    await page.goto(
-      "https://likms.assembly.go.kr/bill/bi/bill/state/mooringBillPage.do",
-      { waitUntil: "networkidle", timeout: 60000 }
-    );
+    // Legislative Notice System - Ongoing Notices
+    const baseUrl =
+      "https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/list.do?menuNo=1100026";
 
-    // 검색 버튼 클릭하여 목록 로드
-    const searchBtn = page.locator(".srch_btn a, a:has-text('검색')").first();
-    if (await searchBtn.isVisible()) {
-        await searchBtn.click();
-        await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(1000); 
+    // 여러 페이지에서 법안 링크 수집
+    const allBillLinks: string[] = [];
+
+    for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+      const pageUrl = `${baseUrl}&pageIndex=${pageNum}`;
+      console.log(`페이지 ${pageNum} 크롤링 중...`);
+
+      await page.goto(pageUrl, { waitUntil: "networkidle", timeout: 60000 });
+
+      const pageLinks = await getBillLinks(page);
+
+      if (pageLinks.length === 0) {
+        console.log(`페이지 ${pageNum}에서 더 이상 법안을 찾을 수 없습니다.`);
+        break;
+      }
+
+      allBillLinks.push(...pageLinks);
+      console.log(`페이지 ${pageNum}: ${pageLinks.length}개 법안 발견 (총: ${allBillLinks.length}개)`);
+
+      // 서버 부담 줄이기
+      if (pageNum < MAX_PAGES) {
+        await page.waitForTimeout(PAGE_DELAY_MS);
+      }
     }
 
-    // 테이블에서 법안 목록 수집
-    const bills = await extractBillsFromPage(page);
+    console.log(`총 ${allBillLinks.length}개 법안 링크 수집 완료`);
 
-    console.log(`Found ${bills.length} bills`);
+    let validBills = 0;
 
-    // 각 법안 DB에 저장
-    for (const bill of bills) {
-      await saveBill(bill);
+    // Visit each bill page to get details
+    for (const link of allBillLinks) {
+      try {
+        const detailPage = await context.newPage();
+        await detailPage.goto(link, { waitUntil: "domcontentloaded" });
+        
+        const billData = await extractBillDetails(detailPage, link);
+        if (billData) {
+            await saveBill(billData);
+            validBills++;
+        }
+        
+        await detailPage.close();
+        // Be polite to the server
+        await page.waitForTimeout(500); 
+      } catch (err) {
+        console.error(`Failed to process bill at ${link}:`, err);
+      }
     }
 
-    console.log("Bills crawl completed");
+    console.log(`Bills crawl completed. Processed ${validBills} bills.`);
   } catch (error) {
     console.error("Error in bills crawler:", error);
     throw error;
   } finally {
     await browser.close();
+    await prisma.$disconnect();
   }
 }
 
-async function extractBillsFromPage(page: Page): Promise<BillData[]> {
-  const bills: BillData[] = [];
-
-  try {
-    // 테이블 행 선택
-    const rows = await page.$$("table tbody tr");
-
-    for (const row of rows) {
-      try {
-        const cells = await row.$$("td");
-        // 예상 구조: 번호, 의안명, 제안자, 소관위, 접수일, ...
-        // 구조가 다를 수 있으므로 텍스트 확인 필요
-        if (cells.length < 5) continue;
-
-        const billNumber = await cells[0]?.textContent() || "";
-        const billNameEl = await cells[1]?.$("a");
-        const billName = await cells[1]?.textContent() || ""; // a 태그 없을 수 있음
-        const proposer = await cells[2]?.textContent() || "";
-        const committee = await cells[3]?.textContent() || "";
-        const dateText = await cells[4]?.textContent() || "";
-
-        if (!billNumber || !billName) continue;
-
-        const noticeEnd = parseDate("2099-12-31");
-
-        const noticeStart = parseDate(dateText);
-
-        bills.push({
-          billNumber: billNumber.trim(),
-          billName: billName.trim(),
-          proposerType: "의원", // 기본값
-          proposer: proposer.trim(),
-          committee: committee.trim(),
-          proposalReason: "상세 정보 확인 필요",
-          mainContent: "상세 정보 확인 필요",
-          noticeStart,
-          noticeEnd,
-          opinionCount: 0,
-          sourceUrl: "https://likms.assembly.go.kr/bill/bi/bill/state/receiptBillPage.do",
+async function getBillLinks(page: Page): Promise<string[]> {
+    return await page.evaluate(() => {
+        const rows = document.querySelectorAll('tbody tr');
+        const urls: string[] = [];
+        rows.forEach(row => {
+            const link = row.querySelector('a');
+            if (link && link.href && link.href.includes('view.do')) {
+                urls.push(link.href);
+            }
         });
-      } catch (error) {
-        console.error("Error extracting row:", error);
-      }
-    }
-  } catch (error) {
-    console.error("Error extracting bills:", error);
-  }
-
-  return bills;
+        return urls;
+    });
 }
 
-function parseDate(dateText: string): Date {
-  // 다양한 날짜 형식 파싱
-  const cleaned = dateText.trim();
+async function extractBillDetails(page: Page, url: string): Promise<BillData | null> {
+    try {
+        await page.waitForSelector('.view_cont', { timeout: 5000 }).catch(() => null);
 
-  // YYYY-MM-DD 또는 YYYY.MM.DD 형식
-  const match = cleaned.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
-  if (match) {
-    return new Date(
-      parseInt(match[1]),
-      parseInt(match[2]) - 1,
-      parseInt(match[3])
-    );
-  }
+        const data = await page.evaluate(() => {
+            const viewCont = document.querySelector('.view_cont');
 
-  // 기본값: 30일 후
-  const future = new Date();
-  future.setDate(future.getDate() + 30);
-  return future;
+            // Title Extraction
+            const h3s = Array.from(document.querySelectorAll('h3'));
+            let titleElement = h3s.find(h => {
+                const t = h.textContent?.trim() || "";
+                return t.includes("법률안") || (t.length > 10 && !t.includes("진행 중 입법예고"));
+            });
+            
+            // Fallback: the h3 immediately preceding .view_cont
+            if (!titleElement && viewCont) {
+                let prev = viewCont.previousElementSibling;
+                while(prev) {
+                    if (prev.tagName === 'H3') {
+                        titleElement = prev as HTMLHeadingElement;
+                        break;
+                    }
+                    prev = prev.previousElementSibling;
+                }
+            }
+
+            const titleText = titleElement?.textContent?.trim() || "";
+            
+            let billName = titleText;
+            let proposerText = "미정"; // Default
+            
+            if (titleText.includes('(') && titleText.includes(')')) {
+                const match = titleText.match(/\((.*?)\)$/);
+                if (match) {
+                    proposerText = match[1];
+                }
+                billName = titleText.replace(/\s*\(.*?\)$/, "").trim(); 
+            }
+
+            // Metadata from .view_cont
+            let committee = "미정";
+            let startStr = "";
+            let endStr = "";
+            
+            if (viewCont) {
+                const textContent = (viewCont as HTMLElement).innerText || ""; 
+                const lines = textContent.split('\n').map((l: string) => l.trim()).filter((l: string) => l);
+                
+                // Find "입법예고기간" line
+                const periodLine = lines.find((l: string) => l.includes("입법예고기간"));
+                if (periodLine) {
+                    const dates = periodLine.replace("입법예고기간", "").replace(":", "").trim();
+                     const parts = dates.split('~');
+                     if (parts.length >= 2) {
+                        startStr = parts[0].trim();
+                        endStr = parts[1].trim();
+                     }
+                }
+
+                // Committee heuristic
+                if (lines[0] === "입법예고 법률안" && lines[1]) {
+                    committee = lines[1];
+                }
+                
+                // Update proposer if still default
+                if (proposerText === "미정" && lines[2]) {
+                    proposerText = lines[2].replace("제안자목록", "").trim();
+                }
+            }
+
+            // Content
+            let contentText = "";
+            const h4s = Array.from(document.querySelectorAll('h4'));
+            let contentHeader = null;
+            
+            for (const h of h4s) {
+                if (h.textContent?.includes('제안이유') || h.textContent?.includes('주요내용')) {
+                    contentHeader = h;
+                    break;
+                }
+            }
+
+            if (contentHeader) {
+                let sibling = contentHeader.nextElementSibling;
+                while(sibling) {
+                    if (sibling.tagName === 'DIV') {
+                        contentText = sibling.textContent?.trim() || "";
+                        break;
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+            } else {
+                 const contentDiv = document.querySelector('.txt_content');
+                 if (contentDiv) contentText = contentDiv.textContent?.trim() || "";
+            }
+
+            return {
+                billName: billName || "제목 없음",
+                proposer: proposerText,
+                committee,
+                noticeStartStr: startStr,
+                noticeEndStr: endStr,
+                content: contentText
+            };
+        });
+
+        const urlObj = new URL(url);
+        const billId = urlObj.searchParams.get('lgsltPaId') || `UNKNOWN-${Date.now()}`;
+
+        // 안전한 날짜 파싱 (실패 시 기본값 사용)
+        const noticeStart = parseDateSafe(data.noticeStartStr, 0);
+        const noticeEnd = parseDateSafe(data.noticeEndStr, 14);
+
+        return {
+            billNumber: billId,
+            billName: data.billName,
+            proposerType: data.proposer.includes("정부") ? "정부" : "의원",
+            proposer: data.proposer,
+            committee: data.committee,
+            proposalReason: data.content.substring(0, 500),
+            mainContent: data.content,
+            noticeStart,
+            noticeEnd,
+            opinionCount: 0,
+            sourceUrl: url,
+        };
+
+    } catch (e) {
+        console.error(`Error details on page ${url}`, e);
+        return null;
+    }
 }
 
 async function saveBill(data: BillData): Promise<void> {
@@ -150,6 +285,7 @@ async function saveBill(data: BillData): Promise<void> {
         opinionCount: data.opinionCount,
         sourceUrl: data.sourceUrl,
         updatedAt: new Date(),
+        status: "IN_PROGRESS"
       },
       create: {
         billNumber: data.billNumber,
@@ -163,15 +299,15 @@ async function saveBill(data: BillData): Promise<void> {
         noticeEnd: data.noticeEnd,
         opinionCount: data.opinionCount,
         sourceUrl: data.sourceUrl,
+        status: "IN_PROGRESS"
       },
     });
-    console.log(`Saved bill: ${data.billNumber}`);
+    console.log(`Saved/Updated bill: ${data.billName}`);
   } catch (error) {
     console.error(`Error saving bill ${data.billNumber}:`, error);
   }
 }
 
-// 개별 실행용
 if (process.argv[1]?.includes("crawl-bills")) {
   crawlBills()
     .then(() => {

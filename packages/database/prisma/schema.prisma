@@ -49,6 +49,7 @@ model VerificationToken {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  password      String?   // null for OAuth users
   name          String?
   image         String?
   emailVerified DateTime?
@@ -65,6 +66,11 @@ model User {
   posts            Post[]
   comments         Comment[]
   supporterBadges  SupporterBadge[]
+
+  // 실시간 토론방
+  createdLiveRooms LiveRoom[]    @relation("CreatedLiveRooms")
+  liveMessages     LiveMessage[] @relation("LiveMessages")
+  liveVotes        LiveVote[]    @relation("LiveVotes")
 }
 
 // ========== 입법예고 ==========
@@ -250,6 +256,66 @@ model Politician {
 
   @@index([party])
   @@index([name])
+}
+
+// ========== 실시간 토론방 ==========
+enum LiveRoomStatus {
+  WAITING     // 대기 중
+  ACTIVE      // 진행 중
+  ENDED       // 종료
+}
+
+enum Stance {
+  PRO         // 찬성
+  CON         // 반대
+  NEUTRAL     // 중립
+}
+
+model LiveRoom {
+  id          String         @id @default(cuid())
+  title       String
+  description String?        @db.Text
+  topicType   String         // BILL, PETITION, FREE
+  topicId     String?        // 연동된 법안/청원 ID (FREE인 경우 null)
+  status      LiveRoomStatus @default(WAITING)
+  createdById String
+  createdBy   User           @relation("CreatedLiveRooms", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now())
+  endsAt      DateTime?
+
+  messages    LiveMessage[]
+  votes       LiveVote[]
+
+  @@index([status])
+  @@index([topicType, topicId])
+  @@index([createdAt])
+}
+
+model LiveMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("LiveMessages", fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  stance    Stance
+  isHidden  Boolean  @default(false)  // 신고로 숨김 처리된 메시지
+  createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
+}
+
+model LiveVote {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("LiveVotes", fields: [userId], references: [id], onDelete: Cascade)
+  stance    Stance
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roomId, userId])
 }
 
 // ========== 서포터 뱃지 ==========

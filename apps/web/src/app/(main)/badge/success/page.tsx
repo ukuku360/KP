@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@politics/database";
@@ -42,12 +41,16 @@ export default async function BadgeSuccessPage({ searchParams }: SuccessPageProp
   }
 
   // Webhook이 처리될 때까지 약간의 지연이 있을 수 있음
-  // 최대 5초간 폴링
+  const MAX_POLLING_ATTEMPTS = 5;
+  const POLLING_INTERVAL_MS = 1000;
+
   let badge = null;
-  for (let i = 0; i < 5; i++) {
+  for (let attempt = 1; attempt <= MAX_POLLING_ATTEMPTS; attempt++) {
     badge = await getBadgeBySessionId(session_id, session.user.id);
     if (badge) break;
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (attempt < MAX_POLLING_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL_MS));
+    }
   }
 
   return (
@@ -113,4 +116,6 @@ export default async function BadgeSuccessPage({ searchParams }: SuccessPageProp
     </div>
   );
 }
+
+
 

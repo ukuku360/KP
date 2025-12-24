@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
     }
 
     // 활성 뱃지만 조회 (만료되지 않은)
@@ -37,9 +37,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching user badges:", error);
     return NextResponse.json(
-      { error: "Failed to fetch badges" },
+      { error: "뱃지 조회에 실패했습니다" },
       { status: 500 }
     );
   }
 }
+
+
 
