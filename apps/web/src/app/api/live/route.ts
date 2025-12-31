@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as LiveRoomStatus | null;
     const topicType = searchParams.get("topicType");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const where: Record<string, unknown> = {};
@@ -71,8 +71,7 @@ export async function GET(request: NextRequest) {
       total,
       hasMore: offset + limit < total,
     });
-  } catch (error) {
-    console.error("토론방 목록 조회 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "토론방 목록 조회에 실패했습니다" },
       { status: 500 }
@@ -135,8 +134,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(room, { status: 201 });
-  } catch (error) {
-    console.error("토론방 생성 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "토론방 생성에 실패했습니다" },
       { status: 500 }

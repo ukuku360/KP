@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { TOTAL_SEATS } from "@/lib/constants";
+import { PartyDistrictDetail } from "./PartyDistrictDetail";
 
 interface Party {
   id: string;
@@ -11,21 +12,18 @@ interface Party {
   color: string;
 }
 
-// Approximate current distribution (User asked for rough numbers initially)
+// 22nd National Assembly - Real Data (2025.12 기준)
 const SAMPLE_DATA: Party[] = [
-  { id: "minjoo", name: "더불어민주당", count: 169, color: "#004EA2" }, // Blue
-  { id: "justice", name: "정의당", count: 6, color: "#FFED00" }, // Yellow
-  { id: "basic", name: "기본소득당", count: 1, color: "#00BCD4" }, 
-  { id: "transition", name: "시대전환", count: 1, color: "#5D2C89" },
-  { id: "independent", name: "무소속", count: 7, color: "#808080" },
-  { id: "peoplepower", name: "국민의힘", count: 116, color: "#E61E2B" }, // Red
-].sort((a, b) => {
-    // Custom sort to make sure left-wing is on left (Minjoo) and right-wing on right (People Power) often used in KR
-    // Or just simple order in the array.
-    // Let's keep array order for rendering:
-    // We want Minjoo on Left, People Power on Right.
-    return 0; 
-});
+  { id: "minjoo", name: "더불어민주당", count: 170, color: "#004EA2" }, // 지역구 157 + 비례 13
+  { id: "peoplepower", name: "국민의힘", count: 108, color: "#E61E2B" }, // 지역구 90 + 비례 18
+  { id: "chokuk", name: "조국혁신당", count: 13, color: "#0073CF" }, // 비례 13
+  { id: "progressive", name: "진보당", count: 6, color: "#D6001C" }, // 지역구 1 + 비례 5
+  { id: "reform", name: "개혁신당", count: 3, color: "#FF7920" }, // 지역구 1 + 비례 2
+  { id: "basicincome", name: "기본소득당", count: 1, color: "#00C4B3" }, // 용혜인
+  { id: "socialdemocratic", name: "사회민주당", count: 1, color: "#E91E63" }, // 한창민
+  { id: "independent", name: "무소속", count: 5, color: "#808080" }, // 우원식, 김종민, 이춘석, 임광현, 최혁진
+  { id: "vacant", name: "궐원", count: 2, color: "#CCCCCC" }, // 계양을, 아산을
+].sort((a, b) => b.count - a.count);
 
 
 interface Dot {
@@ -198,6 +196,9 @@ export function SeatDistributionChart() {
     const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [hoveredParty, setHoveredParty] = React.useState<string | null>(null);
+    const [selectedPartyId, setSelectedPartyId] = React.useState<string | null>(null);
+
+    const selectedParty = SAMPLE_DATA.find(p => p.id === selectedPartyId);
 
     React.useEffect(() => {
         const updateDots = () => {
@@ -207,124 +208,157 @@ export function SeatDistributionChart() {
                 const height = width / 1.8; 
                 setDimensions({ width, height });
                 
-                const newDots = generateHemicycleDots(width, height, SAMPLE_DATA);
-                setDots(newDots);
+                if (width > 0) {
+                    const newDots = generateHemicycleDots(width, height, SAMPLE_DATA);
+                    setDots(newDots);
+                }
             }
         };
 
         updateDots();
+        const timeoutId = setTimeout(updateDots, 100); // Initial delay to ensure container is ready
         window.addEventListener('resize', updateDots);
-        return () => window.removeEventListener('resize', updateDots);
+        return () => {
+            clearTimeout(timeoutId);
+            window.removeEventListener('resize', updateDots);
+        };
     }, []);
 
     const total = SAMPLE_DATA.reduce((acc, curr) => acc + curr.count, 0);
 
     return (
         <div className="w-full bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-4 sm:p-6 md:p-8">
-            <div className="relative w-full mx-auto" style={{ height: dimensions.height || 'auto', minHeight: 200 }} ref={containerRef}>
-                {dimensions.width > 0 && (
-                    <svg width={dimensions.width} height={dimensions.height} className="overflow-visible">
-                         <defs>
-                             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                 <feGaussianBlur stdDeviation="2" result="blur" />
-                                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                             </filter>
-                         </defs>
-                         {dots.map((dot, i) => (
-                             <circle
-                                key={i}
-                                cx={dot.x}
-                                cy={dot.y}
-                                r={Math.max(dimensions.width / 150, 3)}
-                                fill={hoveredParty && hoveredParty !== dot.partyId ? "#e5e7eb" : dot.color}
-                                className="transition-all duration-300 ease-out cursor-pointer"
-                                style={{
-                                    transformOrigin: 'center',
-                                    filter: hoveredParty === dot.partyId ? 'url(#glow)' : undefined
-                                }}
-                                onMouseEnter={() => setHoveredParty(dot.partyId)}
-                                onMouseLeave={() => setHoveredParty(null)}
-                             />
-                         ))}
-                    </svg>
-                )}
-                {/* Center Info Panel */}
-                <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-                     <div className="transition-all duration-300 transform">
-                         {hoveredParty ? (
-                             <div className="flex flex-col items-center">
-                                 <div className="text-base sm:text-xl md:text-2xl font-bold tracking-tight mb-0.5 sm:mb-1" style={{ color: SAMPLE_DATA.find(p => p.id === hoveredParty)?.color }}>
-                                     {SAMPLE_DATA.find(p => p.id === hoveredParty)?.name}
-                                 </div>
-                                 <div className="flex items-baseline gap-0.5 sm:gap-1">
-                                    <span className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground">
-                                        {SAMPLE_DATA.find(p => p.id === hoveredParty)?.count}
-                                    </span>
-                                    <span className="text-xs sm:text-sm text-muted-foreground font-medium">석</span>
-                                 </div>
-                                 <span className="text-xs sm:text-sm text-muted-foreground font-medium">
-                                    {Math.round(((SAMPLE_DATA.find(p => p.id === hoveredParty)?.count || 0) / total) * 100)}%
-                                 </span>
-                             </div>
-                         ) : (
-                             <div className="flex flex-col items-center">
-                                 <span className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-0.5 sm:mb-1">Total Seats</span>
-                                 <div className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">
-                                     {total}
-                                 </div>
-                             </div>
-                         )}
-                     </div>
-                </div>
-            </div>
-
-            {/* Legend - Stacked Bar Graph */}
-            <div className="mt-6 sm:mt-8 md:mt-12 w-full max-w-4xl mx-auto">
-                <div className="flex w-full h-10 sm:h-12 md:h-14 lg:h-16 rounded-xl sm:rounded-2xl overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5 isolate">
-                    {SAMPLE_DATA.map((party) => {
-                        const percentage = (party.count / total) * 100;
-                        const isHovered = hoveredParty === party.id;
-                        const isMuted = hoveredParty && !isHovered;
-                        const showLabel = percentage > 15;
-
-                        return (
-                            <div
-                                key={party.id}
-                                className={cn(
-                                    "relative h-full transition-all duration-300 ease-out cursor-pointer flex items-center justify-center group overflow-hidden",
-                                    isMuted ? "opacity-30" : "opacity-100 z-10"
-                                )}
-                                style={{
-                                    width: `${percentage}%`,
-                                    backgroundColor: party.color,
-                                }}
-                                onMouseEnter={() => setHoveredParty(party.id)}
-                                onMouseLeave={() => setHoveredParty(null)}
-                            >
-                                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-200" />
-
-                                {(showLabel || isHovered) && (
-                                    <div className={cn(
-                                        "flex flex-col items-center justify-center text-white drop-shadow-md whitespace-nowrap",
-                                        party.color === "#FFED00" ? "text-black drop-shadow-none font-bold" : ""
-                                    )}>
-                                        <span className="font-bold text-[10px] sm:text-xs md:text-sm tracking-tight px-0.5 sm:px-1">{party.name}</span>
-                                        <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[10px] md:text-xs font-medium opacity-90">
-                                            <span className={cn(isHovered ? "inline" : "hidden sm:inline")}>{party.count}석</span>
-                                            <span>{Math.round(percentage)}%</span>
+            {selectedPartyId && selectedParty ? (
+                <PartyDistrictDetail 
+                    partyId={selectedPartyId}
+                    partyName={selectedParty.name}
+                    partyColor={selectedParty.color}
+                    onBack={() => setSelectedPartyId(null)}
+                />
+            ) : (
+                <>
+                    <div className="relative w-full mx-auto" style={{ height: dimensions.height || 'auto', minHeight: 200 }} ref={containerRef}>
+                        {dimensions.width > 0 && (
+                            <svg width={dimensions.width} height={dimensions.height} className="overflow-visible">
+                                <defs>
+                                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur stdDeviation="2" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                    </filter>
+                                </defs>
+                                {dots.map((dot, i) => (
+                                    <circle
+                                        key={i}
+                                        cx={dot.x}
+                                        cy={dot.y}
+                                        r={Math.max(dimensions.width / 150, 3)}
+                                        fill={hoveredParty && hoveredParty !== dot.partyId ? "#e5e7eb" : dot.color}
+                                        className="transition-all duration-300 ease-out cursor-pointer"
+                                        style={{
+                                            transformOrigin: 'center',
+                                            filter: hoveredParty === dot.partyId ? 'url(#glow)' : undefined
+                                        }}
+                                        onMouseEnter={() => setHoveredParty(dot.partyId)}
+                                        onMouseLeave={() => setHoveredParty(null)}
+                                        onClick={() => setSelectedPartyId(dot.partyId)}
+                                    />
+                                ))}
+                            </svg>
+                        )}
+                        {/* Center Info Panel */}
+                        <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+                            <div className="transition-all duration-300 transform">
+                                {hoveredParty ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="text-base sm:text-xl md:text-2xl font-bold tracking-tight mb-0.5 sm:mb-1" style={{ color: SAMPLE_DATA.find(p => p.id === hoveredParty)?.color }}>
+                                            {SAMPLE_DATA.find(p => p.id === hoveredParty)?.name}
+                                        </div>
+                                        <div className="flex items-baseline gap-0.5 sm:gap-1">
+                                            <span className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground">
+                                                {SAMPLE_DATA.find(p => p.id === hoveredParty)?.count}
+                                            </span>
+                                            <span className="text-xs sm:text-sm text-muted-foreground font-medium">석</span>
+                                        </div>
+                                        <span className="text-xs sm:text-sm text-muted-foreground font-medium">
+                                            {Math.round(((SAMPLE_DATA.find(p => p.id === hoveredParty)?.count || 0) / total) * 100)}%
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-0.5 sm:mb-1">Total Seats</span>
+                                        <div className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">
+                                            {total}
                                         </div>
                                     </div>
                                 )}
                             </div>
-                        );
-                    })}
-                </div>
+                        </div>
+                    </div>
 
-                <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground mt-1.5 sm:mt-2 px-1">
-                    <span>전체 {total}석</span>
-                    <span>과반 {Math.floor(total/2) + 1}석</span>
-                </div>
-            </div>
+                    {/* Legend - Refined Individual Party Bars */}
+                    <div className="mt-12 sm:mt-16 w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 sm:gap-x-12 sm:gap-y-10">
+                            {SAMPLE_DATA.map((party) => {
+                                const percentage = (party.count / total) * 100;
+                                const isHovered = hoveredParty === party.id;
+                                const isMuted = hoveredParty && !isHovered;
+
+                                return (
+                                    <div
+                                        key={party.id}
+                                        className={cn(
+                                            "flex flex-col gap-3 transition-all duration-300 ease-out cursor-pointer group",
+                                            isMuted ? "opacity-20 scale-[0.98]" : "opacity-100 scale-100"
+                                        )}
+                                        onMouseEnter={() => setHoveredParty(party.id)}
+                                        onMouseLeave={() => setHoveredParty(null)}
+                                        onClick={() => setSelectedPartyId(party.id)}
+                                    >
+                                        <div className="flex justify-between items-center px-1">
+                                            <div className="flex items-center gap-2 px-1">
+                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: party.color }} />
+                                                <span className="text-sm sm:text-base font-bold text-foreground/90 tracking-tight">
+                                                    {party.name}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-baseline gap-1.5 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full shadow-sm">
+                                                <span className="text-sm sm:text-lg font-black text-foreground">
+                                                    {party.count}
+                                                </span>
+                                                <span className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                                                    석
+                                                </span>
+                                                <span className="text-[10px] sm:text-xs text-primary font-black ml-1">
+                                                    {Math.round(percentage)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="relative h-4 sm:h-5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/10 isolate">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) group-hover:brightness-110 shadow-[0_0_15px_rgba(0,0,0,0.1)]"
+                                                style={{
+                                                    width: isHovered ? '100%' : `${percentage}%`,
+                                                    backgroundColor: party.color,
+                                                    opacity: isHovered ? 1 : 0.9,
+                                                }}
+                                            />
+                                            {/* Glass shine effect */}
+                                            <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] sm:text-xs text-muted-foreground mt-12 pt-6 border-t border-zinc-100 dark:border-zinc-800/50 px-2 font-medium tracking-wide">
+                            <div className="flex gap-4">
+                                <span>전체 <strong className="text-foreground">{total}석</strong></span>
+                                <span>과반 <strong className="text-foreground">{Math.floor(total/2) + 1}석</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

@@ -46,8 +46,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
     });
-  } catch (error) {
-    console.error("Signup error:", error);
+  } catch {
     return NextResponse.json(
       { error: "회원가입에 실패했습니다" },
       { status: 500 }

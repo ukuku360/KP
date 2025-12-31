@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@politics/database";
 import { auth } from "@/lib/auth";
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
@@ -22,8 +23,7 @@ export async function GET(
     });
 
     return NextResponse.json(comments);
-  } catch (error) {
-    console.error("Error fetching comments:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch comments" },
       { status: 500 }
@@ -40,6 +40,12 @@ export async function POST(
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting 체크
+    const rateLimitResult = await checkRateLimit(session.user.id, "comments");
+    if (rateLimitResult && !rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     const { content } = await request.json();
@@ -69,8 +75,7 @@ export async function POST(
     });
 
     return NextResponse.json(comment);
-  } catch (error) {
-    console.error("Error creating comment:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to create comment" },
       { status: 500 }

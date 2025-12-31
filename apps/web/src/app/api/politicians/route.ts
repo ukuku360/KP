@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(politicians);
-  } catch (error) {
-    console.error("Error fetching politicians:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch politicians" },
       { status: 500 }

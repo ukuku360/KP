@@ -9,7 +9,7 @@ export default async function HomePage() {
           대한민국 국회 의석수
         </h1>
         <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
-          제21대 국회 정당별 의석 현황 및 비율을 한눈에 확인하세요
+          제22대 국회 정당별 의석 현황 및 비율을 한눈에 확인하세요
         </p>
       </div>
 

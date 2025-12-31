@@ -9,7 +9,10 @@ export async function GET(request: NextRequest) {
     const q = searchParams.get("q");
     const statusParam = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT));
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT)),
+      PAGINATION.MAX_LIMIT || 100
+    );
 
     const where: Prisma.BillWhereInput = {};
 
@@ -48,8 +51,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(bills);
-  } catch (error) {
-    console.error("Error fetching bills:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch bills" },
       { status: 500 }

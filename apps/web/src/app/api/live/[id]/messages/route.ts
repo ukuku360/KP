@@ -46,8 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         ? messages[messages.length - 1].createdAt.toISOString()
         : null,
     });
-  } catch (error) {
-    console.error("메시지 조회 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "메시지 조회에 실패했습니다" },
       { status: 500 }
@@ -151,8 +150,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     return NextResponse.json(message, { status: 201 });
-  } catch (error) {
-    console.error("메시지 작성 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "메시지 작성에 실패했습니다" },
       { status: 500 }

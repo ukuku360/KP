@@ -85,8 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         totalVotes: proCount + conCount + neutralCount,
       },
     });
-  } catch (error) {
-    console.error("투표 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "투표에 실패했습니다" },
       { status: 500 }

@@ -3,6 +3,7 @@ import { BillStatus, PetitionStatus } from "@politics/database";
 export const PAGINATION = {
   DEFAULT_LIMIT: 12,
   POSTS_LIMIT: 20,
+  MAX_LIMIT: 100,
 } as const;
 
 export const DEFAULT_BILL_STATUS = BillStatus.IN_PROGRESS;

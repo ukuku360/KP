@@ -34,8 +34,7 @@ export async function GET(
     }
 
     return NextResponse.json(petition);
-  } catch (error) {
-    console.error("Error fetching petition:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch petition" },
       { status: 500 }

@@ -3,30 +3,43 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MOCK_POLITICIANS, MOCK_BILLS, MOCK_NEWS, MOCK_COMMUNITY_POSTS } from "@/lib/mock-data";
+import { getPoliticianDetail } from "@/lib/politician-utils";
+import { PARTY_COLORS } from "@/lib/assembly-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MessageSquare, ThumbsUp, PenSquare, ArrowRight, Heart, Crown } from "lucide-react";
+import { ExternalLink, MessageSquare, ThumbsUp, PenSquare, ArrowRight, ArrowLeft, Crown } from "lucide-react";
 import { DonationButton } from "@/components/politician/donation-button";
 
 export default function PoliticianDetailPage({ params }: { params: { id: string } }) {
-  const politician = MOCK_POLITICIANS.find((p) => p.id === params.id);
+  const politician = getPoliticianDetail(params.id);
 
   if (!politician) {
     notFound();
   }
 
-  const bills = MOCK_BILLS.filter((b) => b.politicianId === params.id);
-  const news = MOCK_NEWS.filter((n) => n.politicianId === params.id);
-  const posts = MOCK_COMMUNITY_POSTS.filter((p) => p.politicianId === params.id);
+  const partyColor = PARTY_COLORS[politician.party] || "#808080";
+
+  // Placeholder data - bills, news, posts are empty for now
+  const bills: Array<{id: string; title: string; proposeDate: string; status: string; summary: string}> = [];
+  const news: Array<{id: string; title: string; press: string; date: string; url: string}> = [];
+  const posts: Array<{id: string; author: string; authorBadge?: string; category: string; content: string; date: string; likes: number; comments: number}> = [];
 
   return (
     <div className="container py-8 max-w-7xl">
-      {/* Header Profile Summary (Simplified) */}
+      {/* Back button */}
+      <div className="mb-4">
+        <Button variant="ghost" asChild>
+          <Link href="/politicians" className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> 정치인 목록으로
+          </Link>
+        </Button>
+      </div>
+
+      {/* Header Profile Summary */}
       <div className="flex flex-col md:flex-row gap-6 items-center md:items-start mb-8 p-6 bg-secondary/20 rounded-xl">
-        <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-background shadow-lg">
+        <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-background shadow-lg" style={{ borderColor: partyColor }}>
           <AvatarImage src={politician.image} alt={politician.name} />
           <AvatarFallback className="text-2xl">{politician.name[0]}</AvatarFallback>
         </Avatar>
@@ -35,17 +48,27 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
             <h1 className="text-3xl font-bold">{politician.name}</h1>
             <Badge 
                variant="outline" 
-               className={`text-base px-3 py-1
-                 ${politician.party === "국민의힘" ? "text-red-600 border-red-200 bg-red-50" : ""}
-                 ${politician.party === "더불어민주당" ? "text-blue-600 border-blue-200 bg-blue-50" : ""}
-                 ${politician.party === "정의당" ? "text-yellow-600 border-yellow-200 bg-yellow-50" : ""}
-               `}
+               style={{ 
+                 color: partyColor, 
+                 borderColor: `${partyColor}40`,
+                 backgroundColor: `${partyColor}10`
+               }}
+               className="text-base px-3 py-1"
              >
               {politician.party}
             </Badge>
+            <Badge variant="secondary" className="text-sm">
+              {politician.term}
+            </Badge>
           </div>
           <p className="text-lg text-muted-foreground">{politician.district}</p>
-          <p className="max-w-3xl">{politician.bio}</p>
+          {politician.note && (
+            <p className="text-sm font-medium flex items-center gap-2 justify-center md:justify-start">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: partyColor }}></span>
+              {politician.note}
+            </p>
+          )}
+          {politician.bio && <p className="max-w-3xl">{politician.bio}</p>}
         </div>
         <div className="flex flex-col gap-2 min-w-[160px]">
              <DonationButton
@@ -66,13 +89,6 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
                  </a>
                </Button>
              )}
-             {politician.contact.blog && (
-               <Button variant="outline" size="sm" asChild>
-                 <a href={politician.contact.blog} target="_blank" rel="noreferrer" className="gap-2">
-                   <ExternalLink className="h-4 w-4" /> 블로그
-                 </a>
-               </Button>
-             )}
         </div>
       </div>
 
@@ -89,26 +105,38 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
           <CardContent className="space-y-6 flex-1">
             <div>
               <h4 className="font-semibold mb-2 text-muted-foreground">학력</h4>
-              <ul className="list-disc pl-5 space-y-1">
-                {politician.education.map((edu, index) => (
-                  <li key={index}>{edu}</li>
-                ))}
-              </ul>
+              {politician.education.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-1">
+                  {politician.education.map((edu, index) => (
+                    <li key={index}>{edu}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground text-sm">데이터 준비중</p>
+              )}
             </div>
             <div>
               <h4 className="font-semibold mb-2 text-muted-foreground">주요 경력</h4>
-              <ul className="list-disc pl-5 space-y-1">
-                {politician.career.map((career, index) => (
-                  <li key={index}>{career}</li>
-                ))}
-              </ul>
+              {politician.career.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-1">
+                  {politician.career.map((career, index) => (
+                    <li key={index}>{career}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground text-sm">데이터 준비중</p>
+              )}
             </div>
             <div className="pt-4 border-t">
                  <h4 className="font-semibold mb-2 text-muted-foreground">연락처</h4>
-                 <div className="text-sm space-y-1">
-                    {politician.contact.email && <div>📧 {politician.contact.email}</div>}
-                    {politician.contact.phone && <div>📞 {politician.contact.phone}</div>}
-                 </div>
+                 {politician.contact.email || politician.contact.phone ? (
+                   <div className="text-sm space-y-1">
+                     {politician.contact.email && <div>📧 {politician.contact.email}</div>}
+                     {politician.contact.phone && <div>📞 {politician.contact.phone}</div>}
+                   </div>
+                 ) : (
+                   <p className="text-muted-foreground text-sm">데이터 준비중</p>
+                 )}
             </div>
           </CardContent>
         </Card>
@@ -138,7 +166,7 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 text-muted-foreground">등록된 법안이 없습니다.</div>
+              <div className="text-center py-10 text-muted-foreground">데이터 준비중</div>
             )}
           </CardContent>
         </Card>
@@ -171,12 +199,12 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
                 </a>
               ))
             ) : (
-              <div className="text-center py-10 text-muted-foreground">관련 뉴스가 없습니다.</div>
+              <div className="text-center py-10 text-muted-foreground">데이터 준비중</div>
             )}
           </CardContent>
         </Card>
 
-        {/* 4. Community Card (Enhanced) */}
+        {/* 4. Community Card */}
         <Card className="h-full flex flex-col md:col-span-1 lg:col-span-1">
            <CardHeader>
             <div className="flex items-center justify-between mb-2">
@@ -188,7 +216,7 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
                 </Button>
             </div>
             
-            {/* Filter Tabs Mockup */}
+            {/* Filter Tabs */}
             <div className="flex gap-2 text-sm overflow-x-auto pb-1 scrollbar-hide">
                 <Badge variant="secondary" className="cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary">전체</Badge>
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted">응원해요</Badge>
@@ -201,14 +229,7 @@ export default function PoliticianDetailPage({ params }: { params: { id: string 
               posts.slice(0, 4).map((post) => (
                 <div key={post.id} className="p-4 rounded-lg border bg-card hover:shadow-md transition-all cursor-pointer">
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className={`
-                        ${post.category === "응원" ? "border-pink-200 bg-pink-50 text-pink-700" : ""}
-                        ${post.category === "제안" ? "border-blue-200 bg-blue-50 text-blue-700" : ""}
-                        ${post.category === "질문" ? "border-orange-200 bg-orange-50 text-orange-700" : ""}
-                        ${post.category === "토론" ? "border-purple-200 bg-purple-50 text-purple-700" : ""}
-                    `}>
-                        {post.category}
-                    </Badge>
+                    <Badge variant="outline">{post.category}</Badge>
                     <span className="text-sm font-semibold">{post.author}</span>
                     {post.authorBadge && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">

@@ -72,8 +72,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       messages: messages.reverse(), // 오래된 순으로 정렬
       userVote: userVote?.stance || null,
     });
-  } catch (error) {
-    console.error("토론방 조회 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "토론방 조회에 실패했습니다" },
       { status: 500 }
@@ -126,8 +125,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
     return NextResponse.json(updatedRoom);
-  } catch (error) {
-    console.error("토론방 상태 변경 오류:", error);
+  } catch {
     return NextResponse.json(
       { error: "토론방 상태 변경에 실패했습니다" },
       { status: 500 }

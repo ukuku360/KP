@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(badges);
-  } catch (error) {
-    console.error("Error fetching user badges:", error);
+  } catch {
     return NextResponse.json(
       { error: "뱃지 조회에 실패했습니다" },
       { status: 500 }

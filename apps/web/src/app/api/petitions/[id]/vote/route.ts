@@ -38,8 +38,7 @@ export async function POST(
     });
 
     return NextResponse.json(vote);
-  } catch (error) {
-    console.error("Error voting on petition:", error);
+  } catch {
     return NextResponse.json({ error: "Failed to vote" }, { status: 500 });
   }
 }

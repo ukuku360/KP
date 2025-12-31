@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, Prisma } from "@politics/database";
 import { auth } from "@/lib/auth";
 import { PAGINATION } from "@/lib/constants";
+import { checkRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +39,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(posts);
-  } catch (error) {
-    console.error("Error fetching posts:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch posts" },
       { status: 500 }
@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting 체크
+    const rateLimitResult = await checkRateLimit(session.user.id, "posts");
+    if (rateLimitResult && !rateLimitResult.success) {
+      return rateLimitExceededResponse(rateLimitResult);
     }
 
     const { title, content, category } = await request.json();
@@ -74,8 +80,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(post);
-  } catch (error) {
-    console.error("Error creating post:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to create post" },
       { status: 500 }
